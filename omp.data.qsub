@@ -1,0 +1,28 @@
+SRC=LinearBestFit_OMP_DataParallelism.c
+
+# use icc compilation for this code
+module load intel 			#load module intel compiler
+rm -f a.out					#remove a.out,(if any) from previous compilation/running
+icc -qopenmp -O0 ${SRC}				#compile c code using O (zero) optimisation
+
+#$ -V -cwd             				# use current environment and run from current directory
+#$ -j yes              				# merge stdout & stderr in to same output file
+#$ -l cputype=sandybridge,exclusive,h_rt=00:30:00 		# use node(s) with SandyBridge processors, with exclusive access to the node(s), and hard runtime limit of wallclock of 30 minutes
+
+#$ -pe smp 16				#allocate all 16 cores in a compute node for this timing
+
+export OMP_PROC_BIND=true				# restrict the threads to be moved between processors
+export OMP_DYNAMIC=false				# restrict run time system to adjust the number of threads in a parallel region.
+
+echo running on hostname $HOSTNAME		# print location of the host
+
+REPEAT=5
+THREADS=16
+for t in `seq 1 $THREADS`; do 
+	for n in `seq 1 $REPEAT`; do 
+		export OMP_NUM_THREADS=$t; ./a.out			# parallelize with t number of threads
+		echo trial $n of $REPEAT : running on $OMP_NUM_THREADS threads
+	done
+done
+echo 'Finished'        				# indicate the end of the execution
+
